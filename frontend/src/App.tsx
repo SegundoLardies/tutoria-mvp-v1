@@ -22,9 +22,12 @@ function App() {
   
   const canvasRef = useRef<CanvasComponentRef>(null);
   
-  // WebSocket para comunicación en tiempo real
-  const sessionId = 'session_' + Date.now(); // En producción, generar ID único
-  const { lastMessage, isConnected: wsConnected, error: wsError } = useWebSocket(sessionId);
+  // WebSocket para comunicación en tiempo real - use ref to keep sessionId stable
+  const sessionIdRef = useRef<string>('');
+  if (!sessionIdRef.current) {
+    sessionIdRef.current = 'session_' + Date.now();
+  }
+  const { lastMessage, isConnected: wsConnected, error: wsError, isMockMode, disconnect: wsDisconnect, enableMockMode } = useWebSocket(sessionIdRef.current);
   
   // Inicializar AudioContext con interacción del usuario
   useEffect(() => {
@@ -120,7 +123,7 @@ function App() {
           <p>Sesión: {isSessionActive ? '🟢 Activa' : '🔴 Inactiva'}</p>
           <p>Micrófono: {isListening ? '✅ Activo' : '❌ Inactivo'}</p>
           <p>AI: {isConnected ? '✅ Conectado' : '❌ Desconectado'}</p>
-          <p>WebSocket: {wsConnected ? '✅ Conectado' : '❌ Desconectado'}</p>
+          <p>WebSocket: {wsConnected ? '✅ Conectado' : isMockMode ? '🎭 Modo Mock' : '🔄 Conectando...'}</p>
           {isProcessing && <p style={{ color: '#FF9800' }}>🤖 Procesando...</p>}
         </div>
       </div>
@@ -206,6 +209,40 @@ function App() {
           }}
         >
           🎤 Hablar Ahora
+        </button>
+        
+        {/* WebSocket Connection Button */}
+        <button 
+          onClick={wsConnected ? wsDisconnect : undefined}
+          disabled={!wsConnected && !!wsError}
+          style={{
+            padding: '12px 24px',
+            fontSize: '16px',
+            backgroundColor: wsConnected ? '#f44336' : wsError ? '#ccc' : '#FF9800',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: wsConnected ? 'pointer' : 'not-allowed'
+          }}
+        >
+          {wsConnected ? '🔌 Desconectar WS' : wsError ? '❌ WS Error' : '🔄 Conectando WS...'}
+        </button>
+        
+        {/* Mock Mode Button */}
+        <button 
+          onClick={enableMockMode}
+          disabled={isMockMode}
+          style={{
+            padding: '12px 24px',
+            fontSize: '16px',
+            backgroundColor: isMockMode ? '#ccc' : '#9C27B0',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: isMockMode ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {isMockMode ? '🎭 Modo Mock Activo' : '🎭 Activar Modo Mock'}
         </button>
       </div>
       

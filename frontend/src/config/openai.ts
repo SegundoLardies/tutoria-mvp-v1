@@ -63,6 +63,7 @@ export const getCurrentConfig = () => {
   return {
     provider,
     config: AI_CONFIG[provider],
+    tools: AI_CONFIG.tools,
     systemMessage: AI_CONFIG.systemMessage,
   };
 };
