@@ -1,69 +1,79 @@
-# React + TypeScript + Vite
+# TutorIA - Chat de Voz
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Una aplicación de chat de voz que utiliza VAD (Voice Activity Detection) y OpenAI para crear un tutor de programación conversacional.
 
-Currently, two official plugins are available:
+## 🚀 Configuración
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 1. Instalar dependencias
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 2. Configurar OpenAI API Key
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+1. Ve a [OpenAI Platform](https://platform.openai.com/api-keys)
+2. Crea una nueva API key
+3. Crea un archivo `.env` en la raíz del proyecto frontend
+4. Agrega tu API key:
 ```
+VITE_OPENAI_API_KEY=tu_api_key_aqui
+```
+
+### 3. Ejecutar la aplicación
+```bash
+npm run dev
+```
+
+## 🎯 Funcionalidades
+
+- **Detección de Voz (VAD)**: Detecta automáticamente cuando estás hablando
+- **Grabación de Audio**: Graba tu voz cuando hablas
+- **Integración con OpenAI**: Envía tu audio a GPT-4 para obtener respuestas
+- **Chat Conversacional**: Mantiene el contexto de la conversación
+
+## 🎮 Cómo usar
+
+1. **Conectar OpenAI**: Haz clic en "🔌 Conectar OpenAI"
+2. **Iniciar Chat**: Haz clic en "🚀 Iniciar Chat"
+3. **Hablar**: Habla cuando veas el círculo verde
+4. **Esperar Respuesta**: El tutor responderá automáticamente
+
+## 🔧 Tecnologías
+
+- **React + TypeScript**: Frontend framework
+- **Vite**: Build tool
+- **@ricky0123/vad-web**: Voice Activity Detection
+- **OpenAI SDK**: Integración con GPT-4
+- **Web Audio API**: Grabación y procesamiento de audio
+
+## 📁 Estructura del proyecto
+
+```
+frontend/
+├── src/
+│   ├── hooks/
+│   │   ├── useVAD.ts          # Hook para detección de voz
+│   │   ├── useOpenAI.ts       # Hook para integración con OpenAI
+│   │   └── useVoiceChat.ts    # Hook principal que combina VAD + OpenAI
+│   ├── config/
+│   │   └── openai.ts          # Configuración de OpenAI
+│   └── App.tsx                # Componente principal
+└── .env                       # Variables de entorno (crear manualmente)
+```
+
+## 🐛 Solución de problemas
+
+### Error: "VITE_OPENAI_API_KEY no está configurada"
+- Asegúrate de crear el archivo `.env` en la raíz del proyecto
+- Verifica que la API key sea válida
+- Reinicia el servidor de desarrollo
+
+### El VAD no detecta voz
+- Verifica que el micrófono esté funcionando
+- Acepta los permisos del navegador
+- Prueba en un entorno más silencioso
+
+### No se reciben respuestas de OpenAI
+- Verifica tu API key
+- Asegúrate de tener créditos en tu cuenta de OpenAI
+- Revisa la consola del navegador para errores
