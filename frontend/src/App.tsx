@@ -10,9 +10,11 @@ function App() {
     response,
     isListening,
     isSpeaking,
+    isSessionActive,
     connect,
+    startSession,
+    endSession,
     startListening,
-    stopListening,
   } = useAIChat();
   
   // Inicializar AudioContext con interacción del usuario
@@ -47,7 +49,7 @@ function App() {
   }, []);
   
   // Log para depuración
-  console.log('App render - isSpeaking:', isSpeaking, 'isListening:', isListening, 'isConnected:', isConnected);
+  console.log('App render - isSpeaking:', isSpeaking, 'isListening:', isListening, 'isConnected:', isConnected, 'isSessionActive:', isSessionActive);
 
   return (
     <div style={{ padding: '50px', textAlign: 'center' }}>
@@ -81,10 +83,11 @@ function App() {
       {/* Estados */}
       <div style={{ marginBottom: '20px' }}>
         <p style={{ fontSize: '18px', marginBottom: '10px' }}>
-          {isSpeaking ? '🤖 TutorIA hablando...' : isListening ? '🎤 Escuchando...' : '⏸️ Detenido'}
+          {isSpeaking ? '🤖 TutorIA hablando...' : isListening ? '🎤 Escuchando...' : isSessionActive ? '⏳ Esperando...' : '⏸️ Detenido'}
         </p>
         
         <div style={{ fontSize: '14px', color: '#666' }}>
+          <p>Sesión: {isSessionActive ? '🟢 Activa' : '🔴 Inactiva'}</p>
           <p>Micrófono: {isListening ? '✅ Activo' : '❌ Inactivo'}</p>
           <p>AI: {isConnected ? '✅ Conectado' : '❌ Desconectado'}</p>
           {isProcessing && <p style={{ color: '#FF9800' }}>🤖 Procesando...</p>}
@@ -125,36 +128,53 @@ function App() {
           {isConnected ? '✅ Conectado' : '🔌 Conectar AI'}
         </button>
         
-        <button 
-          onClick={startListening}
-          disabled={!isConnected || isListening}
-          style={{
-            padding: '12px 24px',
-            fontSize: '16px',
-            backgroundColor: (!isConnected || isListening) ? '#ccc' : '#4CAF50',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: (!isConnected || isListening) ? 'not-allowed' : 'pointer'
-          }}
-        >
-          🎤 Hablar
-        </button>
+        {!isSessionActive ? (
+          <button 
+            onClick={startSession}
+            disabled={!isConnected}
+            style={{
+              padding: '12px 24px',
+              fontSize: '16px',
+              backgroundColor: !isConnected ? '#ccc' : '#4CAF50',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: !isConnected ? 'not-allowed' : 'pointer'
+            }}
+          >
+            🚀 Iniciar Sesión
+          </button>
+        ) : (
+          <button 
+            onClick={endSession}
+            style={{
+              padding: '12px 24px',
+              fontSize: '16px',
+              backgroundColor: '#f44336',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer'
+            }}
+          >
+            🛑 Terminar Sesión
+          </button>
+        )}
         
         <button 
-          onClick={stopListening}
-          disabled={!isListening}
+          onClick={startListening}
+          disabled={!isConnected || isListening || !isSessionActive}
           style={{
             padding: '12px 24px',
             fontSize: '16px',
-            backgroundColor: !isListening ? '#ccc' : '#f44336',
+            backgroundColor: (!isConnected || isListening || !isSessionActive) ? '#ccc' : '#2196F3',
             color: 'white',
             border: 'none',
             borderRadius: '5px',
-            cursor: !isListening ? 'not-allowed' : 'pointer'
+            cursor: (!isConnected || isListening || !isSessionActive) ? 'not-allowed' : 'pointer'
           }}
         >
-          🛑 Detener
+          🎤 Hablar Ahora
         </button>
       </div>
       
@@ -162,10 +182,12 @@ function App() {
       <div style={{ marginTop: '30px', fontSize: '14px', color: '#666', maxWidth: '500px', margin: '30px auto 0' }}>
         <h3>📋 Instrucciones:</h3>
         <ol style={{ textAlign: 'left', lineHeight: '1.6' }}>
-          <li>Primero, conecta con AI (Groq gratuito o OpenAI)</li>
-          <li>Haz clic en "Hablar" para activar el micrófono</li>
-          <li>Habla tu pregunta cuando veas el círculo verde</li>
-          <li>Espera la respuesta del tutor (círculo azul)</li>
+          <li>Conecta con AI (Groq gratuito o OpenAI)</li>
+          <li>Inicia una sesión continua con "🚀 Iniciar Sesión"</li>
+          <li>Habla tu pregunta - el micrófono se activará automáticamente</li>
+          <li>El tutor responderá y luego reactivará el micrófono</li>
+          <li>Continúa la conversación naturalmente</li>
+          <li>Termina con "🛑 Terminar Sesión" cuando acabes</li>
         </ol>
       </div>
     </div>

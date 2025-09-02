@@ -10,9 +10,12 @@ interface UseAIChatReturn {
   isListening: boolean;
   isSpeaking: boolean;
   transcript: string;
+  isSessionActive: boolean;
   connect: () => Promise<void>;
   disconnect: () => void;
   sendText: (text: string) => Promise<void>;
+  startSession: () => void;
+  endSession: () => void;
   startListening: () => void;
   stopListening: () => void;
   speak: (text: string) => void;
@@ -30,11 +33,19 @@ export const useAIChat = (): UseAIChatReturn => {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [isSessionActive, setIsSessionActive] = useState(false);
+  const [conversationHistory, setConversationHistory] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
   
   // Referencias
   const aiClientRef = useRef<OpenAI | null>(null);
   const recognitionRef = useRef<any>(null);
   const synthRef = useRef<SpeechSynthesis | null>(null);
+  const isSessionActiveRef = useRef<boolean>(false);
+  const conversationHistoryRef = useRef<Array<{role: 'user' | 'assistant', content: string}>>([]);
+  
+  // Sincronizar los refs con los estados
+  isSessionActiveRef.current = isSessionActive;
+  conversationHistoryRef.current = conversationHistory;
 
   // Conectar con AI (Groq o OpenAI)
   const connect = useCallback(async () => {
@@ -111,8 +122,13 @@ export const useAIChat = (): UseAIChatReturn => {
     setIsProcessing(false);
     setError(null);
     setResponse(null);
-    stopListening();
-    stopSpeaking();
+    setIsSessionActive(false);
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    if (synthRef.current) {
+      synthRef.current.cancel();
+    }
     console.log('🔌 Desconectado de AI');
   }, []);
 
@@ -131,13 +147,24 @@ export const useAIChat = (): UseAIChatReturn => {
       
       console.log(`🤖 Enviando texto a ${provider.toUpperCase()}:`, text);
       
+      // Usar el ref para obtener el historial más actualizado
+      const currentHistory = conversationHistoryRef.current;
+      console.log(`📚 Historial actual (ref): ${currentHistory.length} mensajes`);
+      
+      // Agregar mensaje del usuario al historial
+      const newUserMessage = { role: 'user' as const, content: text };
+      
+      // Construir mensajes con historial completo
+      const messages = [
+        { role: 'system' as const, content: systemMessage },
+        ...currentHistory,
+        newUserMessage
+      ];
+      
       // Generar respuesta
       const completion = await aiClientRef.current.chat.completions.create({
         model: config.model,
-        messages: [
-          { role: 'system', content: systemMessage },
-          { role: 'user', content: text }
-        ],
+        messages: messages,
         max_tokens: config.maxTokens,
         temperature: config.temperature,
         stream: true,
@@ -153,8 +180,18 @@ export const useAIChat = (): UseAIChatReturn => {
       
       console.log(`🤖 Respuesta de ${provider.toUpperCase()}:`, fullResponse);
       
+      // Actualizar historial con ambos mensajes
+      const updatedHistory = [
+        ...currentHistory,
+        newUserMessage,
+        { role: 'assistant' as const, content: fullResponse }
+      ];
+      setConversationHistory(updatedHistory);
+      console.log(`💾 Historial actualizado: ${updatedHistory.length} mensajes`);
+      
       // Reproducir respuesta con TTS
       if (fullResponse) {
+        console.log('🔊 Llamando speak() - Estado actual de sesión:', isSessionActiveRef.current);
         speak(fullResponse);
       }
       
@@ -236,49 +273,105 @@ export const useAIChat = (): UseAIChatReturn => {
     }
   }, [isListening]);
 
-  // Hablar texto (Speech Synthesis)
+  // Inicializar SpeechSynthesis
+  if (typeof window !== 'undefined' && !synthRef.current) {
+    synthRef.current = window.speechSynthesis;
+  }
+
+  // Síntesis de voz (Text-to-Speech)
   const speak = useCallback((text: string) => {
+    // Usar el ref para obtener el estado más actualizado
+    const currentSessionActive = isSessionActiveRef.current;
+    console.log('🔊 Iniciando speak() - Estado actual de sesión (ref):', currentSessionActive);
+    
     try {
-      if (!('speechSynthesis' in window)) {
-        setError('Speech Synthesis no está soportado en este navegador');
+      if (!synthRef.current) {
+        console.error('❌ SpeechSynthesis no disponible');
         return;
       }
 
-      if (!synthRef.current) {
-        synthRef.current = window.speechSynthesis;
-      }
-
-      // Cancelar cualquier síntesis en curso
+      // Cancelar cualquier síntesis anterior
       synthRef.current.cancel();
+      
+      // Esperar un poco para que se cancele completamente
+      setTimeout(() => {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'es-ES';
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+        utterance.volume = 1;
 
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'es-ES';
-      utterance.rate = 0.9;
-      utterance.pitch = 1;
-      utterance.volume = 1;
+        utterance.onstart = () => {
+          console.log('🔊 Iniciando síntesis de voz');
+          setIsSpeaking(true);
+        };
 
-      utterance.onstart = () => {
-        console.log('🔊 Iniciando síntesis de voz');
-        setIsSpeaking(true);
-      };
+        utterance.onend = () => {
+          console.log('🔊 Síntesis de voz terminada correctamente');
+          console.log('🔍 Estado de sesión al momento de speak():', currentSessionActive);
+          setIsSpeaking(false);
+          
+          // Usar el estado capturado al momento de speak()
+          if (currentSessionActive) {
+            console.log('🔄 Reactivando micrófono para continuar conversación');
+            setTimeout(() => {
+              console.log('🔄 Ejecutando startListening después de TTS');
+              startListening();
+            }, 1000);
+          } else {
+            console.log('❌ Sesión no activa, no se reactiva el micrófono');
+          }
+        };
 
-      utterance.onend = () => {
-        console.log('🔊 Síntesis de voz terminada');
-        setIsSpeaking(false);
-      };
+        utterance.onerror = (event) => {
+          console.error('❌ Error en síntesis de voz:', event.error);
+          setError(`Error de síntesis: ${event.error}`);
+          setIsSpeaking(false);
+          
+          // IMPORTANTE: Si hay error (como 'interrupted'), aún así reactivar micrófono
+          if (currentSessionActive) {
+            console.log('🔄 Error en TTS, pero reactivando micrófono por sesión activa');
+            setTimeout(() => {
+              startListening();
+            }, 1000);
+          }
+        };
 
-      utterance.onerror = (event) => {
-        console.error('❌ Error en síntesis de voz:', event.error);
-        setError(`Error de síntesis: ${event.error}`);
-        setIsSpeaking(false);
-      };
+        // Agregar listener adicional para detectar interrupciones
+        utterance.onpause = () => {
+          console.log('⏸️ Síntesis pausada');
+        };
 
-      synthRef.current.speak(utterance);
+        utterance.onresume = () => {
+          console.log('▶️ Síntesis reanudada');
+        };
+
+        synthRef.current?.speak(utterance);
+        
+        // Fallback: Si después de 10 segundos no hay respuesta, reactivar micrófono
+        setTimeout(() => {
+          if (currentSessionActive && !isListening) {
+            console.log('⏰ Timeout de TTS - Reactivando micrófono por seguridad');
+            setIsSpeaking(false);
+            startListening();
+          }
+        }, 10000);
+        
+      }, 100); // Pequeña pausa para evitar conflictos
+      
     } catch (err) {
       console.error('Error al sintetizar voz:', err);
       setError('Error al reproducir la voz');
+      setIsSpeaking(false);
+      
+      // En caso de excepción, también reactivar
+      if (currentSessionActive) {
+        setTimeout(() => {
+          startListening();
+        }, 500);
+      }
     }
-  }, []);
+  }, [startListening, isListening]);
 
   // Detener síntesis
   const stopSpeaking = useCallback(() => {
@@ -288,6 +381,24 @@ export const useAIChat = (): UseAIChatReturn => {
     }
   }, []);
 
+  // Iniciar sesión continua
+  const startSession = useCallback(() => {
+    console.log('🚀 Iniciando sesión continua de conversación');
+    setIsSessionActive(true);
+    setConversationHistory([]); // Limpiar historial al iniciar nueva sesión
+    console.log('🧹 Historial de conversación limpiado');
+    startListening();
+  }, [startListening]);
+
+  // Terminar sesión
+  const endSession = useCallback(() => {
+    console.log('🛑 Terminando sesión de conversación');
+    console.log(`📊 Conversación terminada con ${conversationHistory.length} mensajes`);
+    setIsSessionActive(false);
+    stopListening();
+    stopSpeaking();
+  }, [stopListening, stopSpeaking, conversationHistory.length]);
+
   return {
     isConnected,
     isProcessing,
@@ -296,9 +407,12 @@ export const useAIChat = (): UseAIChatReturn => {
     isListening,
     isSpeaking,
     transcript,
+    isSessionActive,
     connect,
     disconnect,
     sendText,
+    startSession,
+    endSession,
     startListening,
     stopListening,
     speak,
