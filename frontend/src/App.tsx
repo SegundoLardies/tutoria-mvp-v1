@@ -6,6 +6,13 @@ import type { CanvasComponentRef } from './components/canvas';
 import './App.css';
 
 function App() {
+  // WebSocket para comunicación en tiempo real - use ref to keep sessionId stable
+  const sessionIdRef = useRef<string>('');
+  if (!sessionIdRef.current) {
+    sessionIdRef.current = 'session_' + Date.now();
+  }
+  const { lastMessage, isConnected: wsConnected, error: wsError, isMockMode, disconnect: wsDisconnect, enableMockMode, sendMessage } = useWebSocket(sessionIdRef.current);
+  
   const {
     isConnected,
     isProcessing,
@@ -18,16 +25,9 @@ function App() {
     startSession,
     endSession,
     startListening,
-  } = useAIChat();
+  } = useAIChat(sendMessage);
   
   const canvasRef = useRef<CanvasComponentRef>(null);
-  
-  // WebSocket para comunicación en tiempo real - use ref to keep sessionId stable
-  const sessionIdRef = useRef<string>('');
-  if (!sessionIdRef.current) {
-    sessionIdRef.current = 'session_' + Date.now();
-  }
-  const { lastMessage, isConnected: wsConnected, error: wsError, isMockMode, disconnect: wsDisconnect, enableMockMode } = useWebSocket(sessionIdRef.current);
   
   // Inicializar AudioContext con interacción del usuario
   useEffect(() => {

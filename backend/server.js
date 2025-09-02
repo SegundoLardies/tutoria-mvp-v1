@@ -26,8 +26,19 @@ wss.on('connection', (ws, req) => {
       const data = JSON.parse(message);
       console.log('📨 Mensaje recibido:', data);
       
-      // Echo the message back for testing
-      ws.send(JSON.stringify({ echo: data }));
+      // Procesar comandos de dibujo
+      if (data.cmd) {
+        console.log(`🎨 Procesando comando: ${data.cmd} con args:`, data.args);
+        
+        // Enviar el comando de vuelta para que el frontend lo ejecute
+        ws.send(JSON.stringify({ 
+          cmd: data.cmd, 
+          args: data.args || {} 
+        }));
+      } else {
+        // Echo para otros tipos de mensajes
+        ws.send(JSON.stringify({ echo: data }));
+      }
     } catch (e) {
       console.error('❌ Error parseando mensaje:', e);
     }
