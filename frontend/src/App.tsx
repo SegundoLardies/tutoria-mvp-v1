@@ -1,21 +1,19 @@
-import { useVoiceChat } from './hooks/useVoiceChat';
+import { useAIChat } from './hooks/useAIChat';
 import { useEffect } from 'react';
 import './App.css';
 
 function App() {
   const {
-    isSpeaking,
-    isListening,
-    vadError,
     isConnected,
     isProcessing,
-    openaiError,
+    error,
     response,
-    tutorState,
-    startVoiceChat,
-    stopVoiceChat,
-    connectOpenAI
-  } = useVoiceChat();
+    isListening,
+    isSpeaking,
+    connect,
+    startListening,
+    stopListening,
+  } = useAIChat();
   
   // Inicializar AudioContext con interacción del usuario
   useEffect(() => {
@@ -49,22 +47,16 @@ function App() {
   }, []);
   
   // Log para depuración
-  console.log('App render - isSpeaking:', isSpeaking, 'isListening:', isListening, 'isConnected:', isConnected, 'tutorState:', tutorState);
+  console.log('App render - isSpeaking:', isSpeaking, 'isListening:', isListening, 'isConnected:', isConnected);
 
   return (
     <div style={{ padding: '50px', textAlign: 'center' }}>
       <h1>TutorIA - Chat de Voz</h1>
       
       {/* Errores */}
-      {vadError && (
+      {error && (
         <div style={{ color: 'red', marginBottom: '20px', padding: '10px', backgroundColor: '#ffebee', borderRadius: '5px' }}>
-          <strong>Error VAD:</strong> {vadError}
-        </div>
-      )}
-      
-      {openaiError && (
-        <div style={{ color: 'red', marginBottom: '20px', padding: '10px', backgroundColor: '#ffebee', borderRadius: '5px' }}>
-          <strong>Error OpenAI:</strong> {openaiError}
+          <strong>Error:</strong> {error}
         </div>
       )}
       
@@ -73,7 +65,7 @@ function App() {
         width: '120px',
         height: '120px',
         borderRadius: '50%',
-        backgroundColor: isSpeaking ? '#f44336' : tutorState === 'speaking' ? '#2196F3' : isListening ? '#4CAF50' : '#9E9E9E',
+        backgroundColor: isSpeaking ? '#2196F3' : isListening ? '#4CAF50' : '#9E9E9E',
         margin: '20px auto',
         transition: 'background-color 0.3s ease',
         display: 'flex',
@@ -83,18 +75,18 @@ function App() {
         fontSize: '24px',
         fontWeight: 'bold'
       }}>  
-        {isSpeaking ? '🎤' : tutorState === 'speaking' ? '🤖' : isListening ? '👂' : '⏸️'}
+        {isSpeaking ? '🤖' : isListening ? '🎤' : '⏸️'}
       </div>
       
       {/* Estados */}
       <div style={{ marginBottom: '20px' }}>
         <p style={{ fontSize: '18px', marginBottom: '10px' }}>
-          {isSpeaking ? '🎤 Hablando...' : isListening ? '👂 Escuchando...' : '⏸️ Detenido'}
+          {isSpeaking ? '🤖 TutorIA hablando...' : isListening ? '🎤 Escuchando...' : '⏸️ Detenido'}
         </p>
         
         <div style={{ fontSize: '14px', color: '#666' }}>
-          <p>VAD: {isListening ? '✅ Activo' : '❌ Inactivo'}</p>
-          <p>OpenAI: {isConnected ? '✅ Conectado' : '❌ Desconectado'}</p>
+          <p>Micrófono: {isListening ? '✅ Activo' : '❌ Inactivo'}</p>
+          <p>AI: {isConnected ? '✅ Conectado' : '❌ Desconectado'}</p>
           {isProcessing && <p style={{ color: '#FF9800' }}>🤖 Procesando...</p>}
         </div>
       </div>
@@ -118,7 +110,7 @@ function App() {
       {/* Botones de control */}
       <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
         <button 
-          onClick={connectOpenAI}
+          onClick={connect}
           disabled={isConnected}
           style={{
             padding: '12px 24px',
@@ -130,11 +122,11 @@ function App() {
             cursor: isConnected ? 'not-allowed' : 'pointer'
           }}
         >
-          {isConnected ? '✅ Conectado' : '🔌 Conectar OpenAI'}
+          {isConnected ? '✅ Conectado' : '🔌 Conectar AI'}
         </button>
         
         <button 
-          onClick={startVoiceChat}
+          onClick={startListening}
           disabled={!isConnected || isListening}
           style={{
             padding: '12px 24px',
@@ -146,11 +138,11 @@ function App() {
             cursor: (!isConnected || isListening) ? 'not-allowed' : 'pointer'
           }}
         >
-          🚀 Iniciar Chat
+          🎤 Hablar
         </button>
         
         <button 
-          onClick={stopVoiceChat}
+          onClick={stopListening}
           disabled={!isListening}
           style={{
             padding: '12px 24px',
@@ -162,7 +154,7 @@ function App() {
             cursor: !isListening ? 'not-allowed' : 'pointer'
           }}
         >
-          🛑 Detener Chat
+          🛑 Detener
         </button>
       </div>
       
@@ -170,10 +162,10 @@ function App() {
       <div style={{ marginTop: '30px', fontSize: '14px', color: '#666', maxWidth: '500px', margin: '30px auto 0' }}>
         <h3>📋 Instrucciones:</h3>
         <ol style={{ textAlign: 'left', lineHeight: '1.6' }}>
-          <li>Primero, conecta con OpenAI (necesitas una API key)</li>
-          <li>Luego, inicia el chat de voz</li>
-          <li>Habla cuando veas el círculo verde</li>
-          <li>Espera la respuesta del tutor</li>
+          <li>Primero, conecta con AI (Groq gratuito o OpenAI)</li>
+          <li>Haz clic en "Hablar" para activar el micrófono</li>
+          <li>Habla tu pregunta cuando veas el círculo verde</li>
+          <li>Espera la respuesta del tutor (círculo azul)</li>
         </ol>
       </div>
     </div>

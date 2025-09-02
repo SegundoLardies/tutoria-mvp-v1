@@ -30,11 +30,18 @@ async def health_check():
 
 @app.get("/api/v1/session/initiate")
 async def initiate_session():
-    """Endpoint para iniciar una sesión y obtener la API key de OpenAI"""
+    """Endpoint para iniciar una sesión y obtener la API key (Groq o OpenAI)"""
+    # Preferir Groq si está configurado (es gratuito)
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    if groq_api_key:
+        return {"api_key": groq_api_key, "provider": "groq"}
+    
+    # Fallback a OpenAI
     openai_api_key = os.getenv("OPENAI_API_KEY")
-    if not openai_api_key:
-        return {"error": "API key no configurada en el servidor"}, 500
-    return {"api_key": openai_api_key}
+    if openai_api_key:
+        return {"api_key": openai_api_key, "provider": "openai"}
+    
+    return {"error": "Ninguna API key configurada en el servidor (GROQ_API_KEY o OPENAI_API_KEY)"}, 500
 
 if __name__ == "__main__":
     import uvicorn

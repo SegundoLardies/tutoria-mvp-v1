@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import OpenAI from 'openai';
 import { OPENAI_CONFIG, isOpenAIConfigured } from '../config/openai';
+import { useWebSpeech } from './useWebSpeech';
 
 interface UseOpenAIReturn {
   isConnected: boolean;
