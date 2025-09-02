@@ -1,5 +1,8 @@
 import { useAIChat } from './hooks/useAIChat';
-import { useEffect } from 'react';
+import { useWebSocket } from './hooks/useWebSocket';
+import { useEffect, useRef } from 'react';
+import CanvasComponent from './components/canvas';
+import type { CanvasComponentRef } from './components/canvas';
 import './App.css';
 
 function App() {
@@ -16,6 +19,12 @@ function App() {
     endSession,
     startListening,
   } = useAIChat();
+  
+  const canvasRef = useRef<CanvasComponentRef>(null);
+  
+  // WebSocket para comunicación en tiempo real
+  const sessionId = 'session_' + Date.now(); // En producción, generar ID único
+  const { lastMessage, isConnected: wsConnected, error: wsError } = useWebSocket(sessionId);
   
   // Inicializar AudioContext con interacción del usuario
   useEffect(() => {
@@ -48,8 +57,24 @@ function App() {
     };
   }, []);
   
+  // Escuchar mensajes WebSocket y ejecutar comandos de dibujo
+  useEffect(() => {
+    if (lastMessage && canvasRef.current) {
+      const { cmd, args } = lastMessage;
+      console.log('🎨 Ejecutando comando de dibujo:', cmd, args);
+      
+      if (cmd === 'drawCircle') {
+        canvasRef.current.drawCircle(args);
+      } else if (cmd === 'writeText') {
+        canvasRef.current.writeText(args);
+      } else if (cmd === 'clearCanvas') {
+        canvasRef.current.clearCanvas();
+      }
+    }
+  }, [lastMessage]);
+  
   // Log para depuración
-  console.log('App render - isSpeaking:', isSpeaking, 'isListening:', isListening, 'isConnected:', isConnected, 'isSessionActive:', isSessionActive);
+  console.log('App render - isSpeaking:', isSpeaking, 'isListening:', isListening, 'isConnected:', isConnected, 'isSessionActive:', isSessionActive, 'wsConnected:', wsConnected);
 
   return (
     <div style={{ padding: '50px', textAlign: 'center' }}>
@@ -59,6 +84,11 @@ function App() {
       {error && (
         <div style={{ color: 'red', marginBottom: '20px', padding: '10px', backgroundColor: '#ffebee', borderRadius: '5px' }}>
           <strong>Error:</strong> {error}
+        </div>
+      )}
+      {wsError && (
+        <div style={{ color: 'orange', marginBottom: '20px', padding: '10px', backgroundColor: '#fff3e0', borderRadius: '5px' }}>
+          <strong>WebSocket Error:</strong> {wsError}
         </div>
       )}
       
@@ -90,6 +120,7 @@ function App() {
           <p>Sesión: {isSessionActive ? '🟢 Activa' : '🔴 Inactiva'}</p>
           <p>Micrófono: {isListening ? '✅ Activo' : '❌ Inactivo'}</p>
           <p>AI: {isConnected ? '✅ Conectado' : '❌ Desconectado'}</p>
+          <p>WebSocket: {wsConnected ? '✅ Conectado' : '❌ Desconectado'}</p>
           {isProcessing && <p style={{ color: '#FF9800' }}>🤖 Procesando...</p>}
         </div>
       </div>
@@ -176,6 +207,53 @@ function App() {
         >
           🎤 Hablar Ahora
         </button>
+      </div>
+      
+      {/* Canvas de Dibujo */}
+      <div style={{ marginTop: '30px' }}>
+        <h3>🎨 Canvas Interactivo</h3>
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '10px' }}>
+          <button 
+            onClick={() => canvasRef.current?.drawCircle({ x: 150, y: 150, radius: 50, color: '#ff0000' })}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#ff4444',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer'
+            }}
+          >
+            🔴 Círculo Rojo
+          </button>
+          <button 
+            onClick={() => canvasRef.current?.writeText({ x: 300, y: 100, text: 'Hola TutorIA!', fontSize: 24, color: '#0000ff' })}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#4444ff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer'
+            }}
+          >
+            📝 Texto Azul
+          </button>
+          <button 
+            onClick={() => canvasRef.current?.clearCanvas()}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#666',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer'
+            }}
+          >
+            🗑️ Limpiar
+          </button>
+        </div>
+        <CanvasComponent ref={canvasRef} />
       </div>
       
       {/* Instrucciones */}

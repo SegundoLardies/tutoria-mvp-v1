@@ -1,0 +1,47 @@
+[
+    {
+      "type": "function",
+      "function": {
+        "name": "writeText",
+        "description": "Escribe un texto en el pizarrón en una coordenada específica.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "description": "El texto a escribir."
+            },
+            "x": { "type": "number", "description": "Coordenada X." },
+            "y": { "type": "number", "description": "Coordenada Y." },
+            "size": { "type": "number", "description": "Tamaño de la fuente, ej: 24." }
+          },
+          "required": ["text", "x", "y"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "drawCircle",
+        "description": "Dibuja un círculo en el pizarrón.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "x": { "type": "number", "description": "Coordenada X del centro." },
+            "y": { "type": "number", "description": "Coordenada Y del centro." },
+            "radius": { "type": "number", "description": "Radio del círculo." },
+            "color": { "type": "string", "description": "Color del borde, ej: '#FFFFFF'." }
+          },
+          "required": ["x", "y", "radius"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "clearCanvas",
+        "description": "Borra todo el contenido del pizarrón.",
+        "parameters": { "type": "object", "properties": {} }
+      }
+    }
+  ]
